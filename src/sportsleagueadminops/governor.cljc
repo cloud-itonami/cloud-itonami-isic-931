@@ -75,7 +75,7 @@
   competitive-scheduling/disciplinary/pricing/safety-authority enforcement.
   Scanned across the proposal's op/summary/rationale/cites/value, never
   trusting the advisor's own framing of its intent."
-  ["coaching" "coach decision" "コーチ判断"
+  ["coach" "coaching" "coach decision" "コーチ判断"
    "athlete selection" "athlete selection" "選手選定" "選手抜擢"
    "lineup" "ラインアップ" "出場選手"
    "competitive" "競技的" "competition seeding" "seeding"
