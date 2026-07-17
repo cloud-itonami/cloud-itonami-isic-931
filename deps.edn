@@ -3,7 +3,7 @@
  :deps
  {org.clojure/clojure {:mvn/version "1.12.0"}
   org.clojure/clojurescript {:mvn/version "1.10.914"}
-  io.github.com-junkawasaki/langgraph-clj {:local/root "../../com-junkawasaki/langgraph-clj"}
+  io.github.com-junkawasaki/langgraph-clj {:local/root "../../kotoba-lang/langgraph"}
   io.github.kotoba-lang/langchain-clj {:mvn/version "0.0.1-SNAPSHOT"}
   io.github.kotoba-lang/langchain-store {:local/root "../../kotoba-lang/langchain-store"}}
 
