@@ -1,77 +1,11 @@
-{:blueprint/id "cloud-itonami-isic-931"
- :blueprint/name "Sports Activities Operations Coordination"
- :blueprint/isic "931"
- :blueprint/domain "sports-league-administration"
- :blueprint/description
- "LLM-driven administrative coordination for sports clubs, facilities,
-  and leagues. Covers facility/court booking, team roster logistics
-  coordination, supply logistics, event/league logistics, and facility
-  safety concerns. Explicitly excludes coaching decisions, athlete
-  selection/eligibility, competitive scheduling/seeding, disciplinary
-  action, ticket pricing/revenue, and safety-authority overrides."
-
- :blueprint/scope
- {:included ["facility-booking-scheduling"
-             "team-roster-logistics-coordination"
-             "supply-logistics"
-             "event-league-logistics"
-             "safety-concern-flagging"]
-  :excluded ["coaching-decisions"
-             "athlete-selection-eligibility"
-             "competitive-scheduling-seeding"
-             "disciplinary-action"
-             "ticket-pricing-revenue"
-             "safety-authority-overrides"]}
-
- :blueprint/operations
- [{:op/id :schedule-facility-booking
-   :op/description "Facility/court booking scheduling"
-   :op/effect :propose}
-  {:op/id :coordinate-team-roster-logistics-proposal
-   :op/description "Administrative team roster logistics coordination (never coaching/lineup)"
-   :op/effect :propose}
-  {:op/id :coordinate-supply-request
-   :op/description "Non-competitive consumables supply coordination"
-   :op/effect :propose}
-  {:op/id :coordinate-event-logistics
-   :op/description "Event/league logistics coordination"
-   :op/effect :propose}
-  {:op/id :flag-safety-concern
-   :op/description "Facility/player safety concerns (always escalates)"
-   :op/effect :propose}]
-
- :blueprint/governor
- {:hard-checks
-  [{:check/id :facility-unverified
-    :check/rule "Target facility/booking must be registered AND verified"
-    :check/overridable? false}
-   {:check/id :effect-not-propose
-    :check/rule "Effect must be :propose"
-    :check/overridable? false}
-   {:check/id :scope-exclusion
-    :check/rule "No coaching decisions, athlete selection, competitive scheduling, disciplinary action, pricing/revenue, or safety-authority overrides"
-    :check/overridable? false}]
-  :escalate-ops [:flag-safety-concern]
-  :confidence-floor 0.6}
-
- :blueprint/phases
- [{:phase/id 0
-   :phase/name "read-only"
-   :phase/auto #{}}
-  {:phase/id 1
-   :phase/name "facility-booking + team-roster-logistics"
-   :phase/auto #{}}
-  {:phase/id 2
-   :phase/name "+ supply-coordination + event-logistics"
-   :phase/auto #{}}
-  {:phase/id 3
-   :phase/name "auto-commit with escalation"
-   :phase/auto #{:schedule-facility-booking
-                  :coordinate-team-roster-logistics-proposal
-                  :coordinate-supply-request
-                  :coordinate-event-logistics}
-   :phase/always-escalate #{:flag-safety-concern}}]
-
- :blueprint/adr "ADR-2607153800"
- :blueprint/wave "4"
- :blueprint/status "implemented"}
+{:itonami.blueprint/id "cloud-itonami-isic-931"
+ :itonami.blueprint/name "Sports Activities - Facility & League Administrative Coordination"
+ :itonami.blueprint/isic-rev4 "931"
+ :itonami.blueprint/domain :services/sports-facility-coordination
+ :itonami.blueprint/license "AGPL-3.0-or-later"
+ :itonami.blueprint/social-impact [:operational-efficiency :facility-safety :administrative-transparency]
+ :itonami.blueprint/governor :sportsleagueadminops-governor
+ :itonami.blueprint/robotics false
+ :itonami.blueprint/required-technologies [:identity :forms :dmn :bpmn :audit-ledger]
+ :itonami.blueprint/status :public-oss
+ :itonami.blueprint/maturity :implemented}
