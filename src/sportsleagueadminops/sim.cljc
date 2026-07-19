@@ -14,7 +14,7 @@
   []
   (let [st (store/seed-db)
         request {:facility-id "facility-1"
-                 :event-name "Jazz Quartet Performance"
+                 :event-name "Regional Basketball Tournament"
                  :date "2026-08-20"
                  :athlete-count 4}
         result (op/run-operation request 1 st {} :mock)]
@@ -29,7 +29,7 @@
   []
   (let [st (store/seed-db)
         request {:facility-id "facility-1"
-                 :event-name "Jazz Quartet Performance"
+                 :event-name "Regional Basketball Tournament"
                  :date "2026-08-20"
                  :athlete-count 4}
         result (op/run-operation request 3 st {} :mock)]
@@ -44,7 +44,7 @@
   []
   (let [st (store/seed-db)
         request {:facility-id "facility-3"  ;; unverified
-                 :event-name "Summer Concert"
+                 :event-name "Summer League Match"
                  :date "2026-08-15"}
         result (op/run-operation request 3 st {} :mock)]
     {:scenario "unregistered-facility-hard-check"
@@ -59,7 +59,7 @@
   []
   (let [st (store/seed-db)
         request {:facility-id "facility-1"
-                 :event-name "Performance"
+                 :event-name "League Match"
                  :date "2026-08-15"
                  :force-effect :commit}  ;; signals the advisor to use non-:propose effect
         ;; For this test, we'll manually create a proposal with wrong effect
@@ -73,31 +73,31 @@
      :expected-ok? false
      :pass? (not (:ok? gov-result))}))
 
-(defn scenario-scope-exclusion-casting
-  "HARD check #3: proposal touches casting (out of scope) → hard block"
+(defn scenario-scope-exclusion-athlete-selection
+  "HARD check #3: proposal touches athlete selection/lineup (out of scope) → hard block"
   []
   (let [st (store/seed-db)
         request {:facility-id "facility-1"
-                 :test-scenario :casting}
+                 :test-scenario :athlete-selection}
         adv (advisor/out-of-scope-test-advisor)
         proposal (advisor/propose adv request {} st)
         gov-result (sportsleagueadminops.governor/check request {} proposal st)]
-    {:scenario "scope-exclusion-casting"
+    {:scenario "scope-exclusion-athlete-selection"
      :ok? (:ok? gov-result)
      :violations (:violations gov-result)
      :expected-ok? false
      :pass? (not (:ok? gov-result))}))
 
-(defn scenario-scope-exclusion-programming
-  "HARD check #3: proposal touches programming/curatorial (out of scope)"
+(defn scenario-scope-exclusion-competitive-scheduling
+  "HARD check #3: proposal touches competitive scheduling/seeding (out of scope)"
   []
   (let [st (store/seed-db)
         request {:facility-id "facility-1"
-                 :test-scenario :programming}
+                 :test-scenario :competitive-scheduling}
         adv (advisor/out-of-scope-test-advisor)
         proposal (advisor/propose adv request {} st)
         gov-result (sportsleagueadminops.governor/check request {} proposal st)]
-    {:scenario "scope-exclusion-programming"
+    {:scenario "scope-exclusion-competitive-scheduling"
      :ok? (:ok? gov-result)
      :violations (:violations gov-result)
      :expected-ok? false
@@ -123,7 +123,7 @@
   []
   (let [st (store/seed-db)
         request {:facility-id "facility-1"
-                 :event-name "Performance"
+                 :event-name "League Match"
                  :date "2026-08-15"}
         adv (advisor/mock-advisor)
         proposal (advisor/propose adv request {} st)
@@ -146,8 +146,8 @@
                    scenario-happy-path-phase-3
                    scenario-unregistered-facility
                    scenario-effect-not-propose
-                   scenario-scope-exclusion-casting
-                   scenario-scope-exclusion-programming
+                   scenario-scope-exclusion-athlete-selection
+                   scenario-scope-exclusion-competitive-scheduling
                    scenario-scope-exclusion-pricing
                    scenario-safety-concern-escalates]
         results (mapv (fn [f] (f)) scenarios)

@@ -44,31 +44,31 @@
   Advisor
   (propose [_ request _context _store]
     (case (:test-scenario request)
-      :casting
+      :athlete-selection
       {:op :coordinate-team-roster-logistics-proposal
        :facility-id (:facility-id request)
-       :summary "Casting decision for lead athlete"
-       :rationale "We need to select the best talent for this role"
+       :summary "Athlete selection and starting lineup decision"
+       :rationale "We need to decide athlete selection and the starting lineup for the next match"
        :cites []
        :value {}
        :effect :propose
        :confidence 0.9}
 
-      :programming
+      :competitive-scheduling
       {:op :schedule-facility-booking
        :facility-id (:facility-id request)
-       :summary "Programming decision about what shows to book"
-       :rationale "Let's focus on programming the facility with jazz performances"
+       :summary "Competitive scheduling decision about tournament seeding"
+       :rationale "Let's decide the competitive seeding and bracket for the tournament"
        :cites []
        :value {}
        :effect :propose
        :confidence 0.9}
 
       :pricing
-      {:op :coordinate-ticketing-logistics
+      {:op :coordinate-event-logistics
        :facility-id (:facility-id request)
        :summary "Adjust ticket pricing strategy"
-       :rationale "We should increase ticket prices to improve refacility"
+       :rationale "We should increase ticket prices to improve revenue"
        :cites []
        :value {}
        :effect :propose

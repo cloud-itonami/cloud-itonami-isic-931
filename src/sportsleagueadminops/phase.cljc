@@ -5,8 +5,8 @@
   vs. hold for approval.
 
   Phase 0: Read-only. No operations allowed.
-  Phase 1: Venue booking + athlete schedule coordination (approval-gated).
-  Phase 2: + Supply coordination + ticketing logistics (approval-gated).
+  Phase 1: Facility booking + team roster logistics coordination (approval-gated).
+  Phase 2: + Supply coordination + event logistics (approval-gated).
   Phase 3: Auto-commit clean proposals; safety concerns always escalate.
 
   Note: `:flag-safety-concern` is NEVER in any phase's `:auto` set -- it
@@ -23,23 +23,23 @@
                  :coordinate-team-roster-logistics-proposal}
       :auto #{}}
 
-   2 {:name "supply-and-ticketing"
+   2 {:name "supply-and-event-logistics"
       :allowed #{:schedule-facility-booking
                  :coordinate-team-roster-logistics-proposal
                  :coordinate-supply-request
-                 :coordinate-ticketing-logistics}
+                 :coordinate-event-logistics}
       :auto #{}}
 
    3 {:name "auto-commit"
       :allowed #{:schedule-facility-booking
                  :coordinate-team-roster-logistics-proposal
                  :coordinate-supply-request
-                 :coordinate-ticketing-logistics
+                 :coordinate-event-logistics
                  :flag-safety-concern}
       :auto #{:schedule-facility-booking
               :coordinate-team-roster-logistics-proposal
               :coordinate-supply-request
-              :coordinate-ticketing-logistics}
+              :coordinate-event-logistics}
       ;; :flag-safety-concern is explicitly NOT in :auto set
       }})
 
