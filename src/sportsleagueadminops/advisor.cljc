@@ -86,6 +86,32 @@
 
 (defn out-of-scope-test-advisor [] (->OutOfScopeTestAdvisor))
 
+;; ----------------------------- Safety-Concern Test Advisor
+;; :flag-safety-concern's ALWAYS-escalate rule is already fully coded in
+;; sportsleagueadminops.governor's `always-escalate-ops` and documented in
+;; sportsleagueadminops.phase (":flag-safety-concern is NEVER in any
+;; phase's :auto set"). But MockAdvisor only ever proposes
+;; :schedule-facility-booking at confidence 0.85, so without a dedicated
+;; test double that EXISTING escalation rule can never be exercised
+;; end-to-end through the real `:advise` -> :govern -> :decide graph path
+;; -- mirroring the SAME test-scaffolding pattern OutOfScopeTestAdvisor
+;; above already established for the scope-exclusion check. This adds no
+;; new governor/phase policy, just a way to reach an already-defined one.
+
+(defrecord SafetyConcernTestAdvisor []
+  Advisor
+  (propose [_ request _context _store]
+    {:op :flag-safety-concern
+     :facility-id (:facility-id request)
+     :summary "Equipment rigging hazard detected"
+     :rationale "Observed equipment safety hazard requires immediate human review"
+     :cites []
+     :value {:concern-type (get request :concern-type "equipment-hazard")}
+     :effect :propose
+     :confidence 0.95}))
+
+(defn safety-concern-test-advisor [] (->SafetyConcernTestAdvisor))
+
 ;; ----------------------------- DefaultAdvisor
 
 (defn advisor
@@ -95,4 +121,5 @@
   (case mode
     :mock (mock-advisor)
     :test-out-of-scope (out-of-scope-test-advisor)
+    :test-safety-concern (safety-concern-test-advisor)
     (mock-advisor)))  ;; default to mock

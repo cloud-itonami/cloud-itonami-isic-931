@@ -8,4 +8,41 @@
  :itonami.blueprint/robotics false
  :itonami.blueprint/required-technologies [:identity :forms :dmn :bpmn :audit-ledger]
  :itonami.blueprint/status :public-oss
- :itonami.blueprint/maturity :implemented}
+ :itonami.blueprint/maturity :implemented
+ :itonami.blueprint/implemented-slice
+ "sportsleagueadminops.advisor (Advisor protocol, MockAdvisor +
+ OutOfScopeTestAdvisor + SafetyConcernTestAdvisor test doubles, UNCHANGED
+ domain content) |- sportsleagueadminops.governor (three HARD, permanent
+ checks: facility-unverified, effect-not-propose, scope-exclusion,
+ UNCHANGED) |- sportsleagueadminops.phase (0->3 rollout,
+ phase-decision already correctly reached :commit before this fix --
+ UNCHANGED), now wired into a REAL compiled langgraph-clj StateGraph
+ (langgraph.graph, sportsleagueadminops.operation/build), append-only
+ audit ledger (sportsleagueadminops.store/ledger + append-ledger!,
+ MemStore). Fixes a prior gap: operation.cljc's own docstring claimed
+ 'StateGraph operation' but the actual code was a hand-rolled
+ (-> state (intake)(advise)(govern)(decide) ((fn [s] (case
+ (route-from-decide s) ...))))) threading pipeline -- zero require of
+ langgraph.graph, zero use of state-graph/add-node/compile-graph
+ anywhere in the file. Unlike some sibling actors in this fleet,
+ `decide`/`phase/phase-decision` were never dead code here -- the ONLY
+ structural bug was the missing real graph runtime. This fix also
+ closes a second gap: the old pipeline's terminal :escalate state was a
+ dead end (wrote a ledger fact and stopped, no path back for a human
+ decision); now :escalate routes to a genuine :request-approval node
+ (:intake -> :advise -> :govern -> :decide -+-> :commit /
+ :request-approval -> :commit / :hold) gated by interrupt-before
+ #{:request-approval} + in-memory checkpointer, so the compiled graph
+ GENUINELY pauses (checkpointed, ledger stays empty) until a human
+ operator resumes the same thread with an approve/reject decision. Also
+ fixed: unqualified JVM-only java.util.UUID/randomUUID and
+ System/currentTimeMillis calls in operation.cljc (a .cljc file) are now
+ portable via reader-conditionals. Proven end-to-end by
+ test/sportsleagueadminops/operation_test.cljc (commit / hard-hold
+ (unverified + unregistered facility) / scope-exclusion hold /
+ phase-hold / phase-gates-commit / escalate-approve / escalate-reject /
+ phase-0-never-escalates, all through the REAL compiled graph), plus a
+ `clojure -M:dev:run` demo runner producing real ledger entries for
+ every scenario. sportsleagueadminops.governor-test (pre-existing, real
+ clojure.test deftest/is against governor/check, never hardcoded-pass)
+ preserved unchanged."}

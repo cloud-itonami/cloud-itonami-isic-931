@@ -34,8 +34,13 @@ This actor explicitly does **not** handle:
 - `advisor` — Proposal generation and rationale (LLM seam)
 - `governor` — Three HARD checks (facility verification, effect validation, scope exclusion)
 - `phase` — Rollout phases 0–3 (read-only → auto-commit with escalation)
-- `operation` — `langgraph-clj`-style StateGraph: intake → advise → govern → decide → commit | hold | escalate
-- `sim` — Demo driver
+- `operation` — a REAL compiled `langgraph-clj` `StateGraph`
+  (`langgraph.graph/state-graph` + `compile-graph`, not a hand-rolled
+  pipeline): `intake -> advise -> govern -> decide -+-> commit /
+  request-approval -> commit / hold`. `:request-approval` is gated by
+  `interrupt-before` — the compiled graph genuinely pauses (checkpointed)
+  for human approval before an escalated proposal can ever commit.
+- `sim` — Demo driver, runs the same compiled graph end to end
 
 **All modules are `.cljc`** (ClojureScript + JVM compatible).
 
@@ -60,8 +65,13 @@ These are un-overridable, even with human approval.
 ### Tests
 
 ```bash
-clojure -M:dev -e "(require 'clojure.test 'sportsleagueadminops.governor-test) (clojure.test/run-tests 'sportsleagueadminops.governor-test)"
+clojure -M:dev:test
 ```
+
+Runs `advisor` / `governor` / `phase` / `store` / `operation` — the `operation`
+tests build the real compiled StateGraph (`sportsleagueadminops.operation/build`)
+and drive it end to end via `langgraph.graph/run*`, including a genuine
+`interrupt-before`/resume round trip for the escalation path.
 
 ### Linting
 
@@ -72,11 +82,12 @@ clojure -M:lint
 ### Demo/Simulator
 
 ```bash
-clojure -M:dev -e "(require 'sportsleagueadminops.sim) (sportsleagueadminops.sim/demo)"
+clojure -M:dev:run
 ```
 
-This runs `sportsleagueadminops.sim/demo`, which exercises the full operation flow
-including all three hard-check failure modes and the escalation rules.
+This runs `sportsleagueadminops.sim/demo`, which drives the same compiled
+StateGraph through all three hard-check failure modes, the phase auto-commit
+gate, and a real escalate → interrupt → approve round trip.
 
 ## References
 
