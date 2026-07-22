@@ -12,9 +12,19 @@
         :extra-deps {org.clojure/tools.namespace {:mvn/version "1.4.4"}
                      org.clojure/test.check {:mvn/version "1.1.1"}}}
 
-  :test {:extra-paths ["test"]
-         :extra-deps {org.clojure/test.check {:mvn/version "1.1.1"}}
-         :main-opts ["-m" "clojure.main" "-m" "sportsleagueadminops.test"]}
+  ;; clojure -M:dev:run -> drive the demo through the real compiled
+  ;; OperationActor StateGraph
+  :run {:main-opts ["-m" "sportsleagueadminops.sim"]}
 
-  :lint {:extra-deps {clj-kondo/clj-kondo {:mvn/version "2024.11.06"}}
-         :main-opts ["-m" "clj-kondo.core" "--lint" "src" "test"]}}}
+  ;; clojure -M:dev:test -- the old :test alias pointed :main-opts at a
+  ;; nonexistent `sportsleagueadminops.test` namespace (no -main anywhere
+  ;; in this repo) and was never actually runnable. Fixed to the same
+  ;; cognitect.test-runner invocation this fleet's other actors use.
+  :test {:extra-paths ["test"]
+         :extra-deps {io.github.cognitect-labs/test-runner
+                      {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
+         :main-opts ["-m" "cognitect.test-runner"]
+         :exec-fn cognitect.test-runner.api/test}
+
+  :lint {:replace-deps {clj-kondo/clj-kondo {:mvn/version "2024.11.14"}}
+         :main-opts ["-m" "clj-kondo.main" "--lint" "src" "test" "--fail-level" "error"]}}}

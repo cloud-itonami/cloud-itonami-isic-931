@@ -1,72 +1,92 @@
 (ns sportsleagueadminops.sim
-  "Demo/simulator driver. Exercises all scenarios:
-  - Phase 1–3 happy-path operations
-  - All four HARD-check failure modes
-  - Escalation rules
-  - Safety-concern flagging (always escalates)"
+  "Demo driver for the sports facility/league administrative coordination
+  actor. Runs a self-contained simulation with demo data through the REAL
+  compiled `langgraph.graph` StateGraph
+  (`sportsleagueadminops.operation/build`) -- not a hand-rolled pipeline.
+  Exercises the governor's three HARD checks, the phase auto-commit gate,
+  and the human-in-the-loop escalation/approval `interrupt-before` pause
+  + resume."
   (:require [sportsleagueadminops.store :as store]
-            [sportsleagueadminops.operation :as op]
+            [sportsleagueadminops.operation :as operation]
             [sportsleagueadminops.advisor :as advisor]
-            [sportsleagueadminops.governor :as governor]))
+            [sportsleagueadminops.governor :as governor]
+            [langgraph.graph :as g]))
+
+(defn- exec
+  ([actor tid request phase-num] (exec actor tid request phase-num :mock))
+  ([actor tid request phase-num advisor-mode]
+   (g/run* actor
+           {:request request :phase phase-num :advisor-mode advisor-mode}
+           {:thread-id tid})))
+
+;; ---------------------- demo scenarios ----------------------
 
 (defn scenario-happy-path-phase-1
-  "Phase 1: facility booking proposal (approval-gated, should hold)"
+  "Phase 1: facility booking is allowed but not yet auto-commit-eligible
+  -- held for approval through the real graph."
   []
-  (let [st (store/seed-db)
+  (let [s (store/seed-db)
+        actor (operation/build s)
         request {:facility-id "facility-1"
                  :event-name "Regional Basketball Tournament"
                  :date "2026-08-20"
                  :athlete-count 4}
-        result (op/run-operation request 1 st {} :mock)]
+        result (exec actor "demo-1" request 1)]
     {:scenario "happy-path-phase-1"
      :status (:status result)
-     :decision (:decision result)
-     :expected-status :held
-     :pass? (= (:status result) :held)}))
+     :decision (:decision (:state result))
+     :expected-decision :hold
+     :pass? (and (= :done (:status result))
+                 (= :hold (:decision (:state result))))}))
 
 (defn scenario-happy-path-phase-3
-  "Phase 3: same request auto-commits (clean, non-safety op)"
+  "Phase 3: the SAME request auto-commits (clean, non-safety op, in the
+  phase's auto-commit set) through the real compiled graph."
   []
-  (let [st (store/seed-db)
+  (let [s (store/seed-db)
+        actor (operation/build s)
         request {:facility-id "facility-1"
                  :event-name "Regional Basketball Tournament"
                  :date "2026-08-20"
                  :athlete-count 4}
-        result (op/run-operation request 3 st {} :mock)]
+        result (exec actor "demo-2" request 3)]
     {:scenario "happy-path-phase-3"
      :status (:status result)
-     :decision (:decision result)
-     :expected-status :committed
-     :pass? (= (:status result) :committed)}))
+     :decision (:decision (:state result))
+     :ledger-entries (count (store/ledger s))
+     :expected-decision :commit
+     :pass? (= :commit (:decision (:state result)))}))
 
 (defn scenario-unregistered-facility
-  "HARD check #1: target facility is unverified → hold regardless of phase"
+  "HARD check #1: target facility is unverified -> hold regardless of
+  phase, never routed through human approval."
   []
-  (let [st (store/seed-db)
-        request {:facility-id "facility-3"  ;; unverified
+  (let [s (store/seed-db)
+        actor (operation/build s)
+        request {:facility-id "facility-3" ;; registered but NOT verified
                  :event-name "Summer League Match"
                  :date "2026-08-15"}
-        result (op/run-operation request 3 st {} :mock)]
+        result (exec actor "demo-3" request 3)]
     {:scenario "unregistered-facility-hard-check"
      :status (:status result)
-     :decision (:decision result)
-     :governor-violations (-> result :governor-result :violations)
-     :expected-status :held
-     :pass? (= (:status result) :held)}))
+     :decision (:decision (:state result))
+     :governor-violations (get-in result [:state :governor-result :violations])
+     :expected-decision :hold
+     :pass? (= :hold (:decision (:state result)))}))
 
 (defn scenario-effect-not-propose
-  "HARD check #2: effect not :propose → hard violation"
+  "HARD check #2: effect not :propose -> hard violation. Exercises
+  `sportsleagueadminops.governor/check` directly (UNCHANGED domain logic)
+  against a manually corrupted proposal -- no advisor ever produces a
+  non-:propose effect, by design, so this stays a governor-level check
+  rather than a full graph run."
   []
-  (let [st (store/seed-db)
-        request {:facility-id "facility-1"
-                 :event-name "League Match"
-                 :date "2026-08-15"
-                 :force-effect :commit}  ;; signals the advisor to use non-:propose effect
-        ;; For this test, we'll manually create a proposal with wrong effect
+  (let [s (store/seed-db)
         adv (advisor/mock-advisor)
-        proposal (advisor/propose adv request {} st)
+        request {:facility-id "facility-1" :event-name "League Match" :date "2026-08-15"}
+        proposal (advisor/propose adv request {} s)
         proposal-bad-effect (assoc proposal :effect :commit)
-        gov-result (sportsleagueadminops.governor/check request {} proposal-bad-effect st)]
+        gov-result (governor/check request {} proposal-bad-effect s)]
     {:scenario "effect-not-propose-hard-check"
      :ok? (:ok? gov-result)
      :violations (:violations gov-result)
@@ -74,70 +94,75 @@
      :pass? (not (:ok? gov-result))}))
 
 (defn scenario-scope-exclusion-athlete-selection
-  "HARD check #3: proposal touches athlete selection/lineup (out of scope) → hard block"
+  "HARD check #3: proposal touches athlete-selection/lineup content
+  (out of scope) -> hard block, through the real graph via the
+  :test-out-of-scope advisor mode."
   []
-  (let [st (store/seed-db)
-        request {:facility-id "facility-1"
-                 :test-scenario :athlete-selection}
-        adv (advisor/out-of-scope-test-advisor)
-        proposal (advisor/propose adv request {} st)
-        gov-result (sportsleagueadminops.governor/check request {} proposal st)]
+  (let [s (store/seed-db)
+        actor (operation/build s)
+        request {:facility-id "facility-1" :test-scenario :athlete-selection}
+        result (exec actor "demo-4" request 3 :test-out-of-scope)
+        state (:state result)]
     {:scenario "scope-exclusion-athlete-selection"
-     :ok? (:ok? gov-result)
-     :violations (:violations gov-result)
-     :expected-ok? false
-     :pass? (not (:ok? gov-result))}))
+     :decision (:decision state)
+     :violations (get-in state [:governor-result :violations])
+     :expected-decision :hold
+     :pass? (= :hold (:decision state))}))
 
 (defn scenario-scope-exclusion-competitive-scheduling
-  "HARD check #3: proposal touches competitive scheduling/seeding (out of scope)"
+  "HARD check #3: proposal touches competitive scheduling/seeding
+  (out of scope)"
   []
-  (let [st (store/seed-db)
-        request {:facility-id "facility-1"
-                 :test-scenario :competitive-scheduling}
-        adv (advisor/out-of-scope-test-advisor)
-        proposal (advisor/propose adv request {} st)
-        gov-result (sportsleagueadminops.governor/check request {} proposal st)]
+  (let [s (store/seed-db)
+        actor (operation/build s)
+        request {:facility-id "facility-1" :test-scenario :competitive-scheduling}
+        result (exec actor "demo-5" request 3 :test-out-of-scope)
+        state (:state result)]
     {:scenario "scope-exclusion-competitive-scheduling"
-     :ok? (:ok? gov-result)
-     :violations (:violations gov-result)
-     :expected-ok? false
-     :pass? (not (:ok? gov-result))}))
+     :decision (:decision state)
+     :violations (get-in state [:governor-result :violations])
+     :expected-decision :hold
+     :pass? (= :hold (:decision state))}))
 
 (defn scenario-scope-exclusion-pricing
   "HARD check #3: proposal touches pricing policy (out of scope)"
   []
-  (let [st (store/seed-db)
-        request {:facility-id "facility-1"
-                 :test-scenario :pricing}
-        adv (advisor/out-of-scope-test-advisor)
-        proposal (advisor/propose adv request {} st)
-        gov-result (sportsleagueadminops.governor/check request {} proposal st)]
+  (let [s (store/seed-db)
+        actor (operation/build s)
+        request {:facility-id "facility-1" :test-scenario :pricing}
+        result (exec actor "demo-6" request 3 :test-out-of-scope)
+        state (:state result)]
     {:scenario "scope-exclusion-pricing"
-     :ok? (:ok? gov-result)
-     :violations (:violations gov-result)
-     :expected-ok? false
-     :pass? (not (:ok? gov-result))}))
+     :decision (:decision state)
+     :violations (get-in state [:governor-result :violations])
+     :expected-decision :hold
+     :pass? (= :hold (:decision state))}))
 
-(defn scenario-safety-concern-escalates
-  "Safety concerns always escalate (op :flag-safety-concern)"
+(defn scenario-safety-concern-escalates-then-approved
+  "`:flag-safety-concern` ALWAYS escalates -- the real graph GENUINELY
+  interrupts (checkpointed) at :request-approval; the ledger stays empty
+  until a human approves; approval resumes the SAME compiled graph and
+  commits via the graph's own :request-approval -> :commit edge."
   []
-  (let [st (store/seed-db)
-        request {:facility-id "facility-1"
-                 :event-name "League Match"
-                 :date "2026-08-15"}
-        adv (advisor/mock-advisor)
-        proposal (advisor/propose adv request {} st)
-        safety-proposal (assoc proposal :op :flag-safety-concern
-                                       :summary "Equipment rigging hazard detected"
-                                       :confidence 0.95)
-        result (op/run-operation request 3 st {} :mock)]
-    ;; Manually run through governor to check escalation
-    (let [gov-result (sportsleagueadminops.governor/check request {} safety-proposal st)]
-      {:scenario "safety-concern-escalates"
-       :op (:op safety-proposal)
-       :escalate? (:escalate? gov-result)
-       :expected-escalate? true
-       :pass? (:escalate? gov-result)})))
+  (let [s (store/seed-db)
+        actor (operation/build s)
+        request {:facility-id "facility-1" :concern-type "equipment-hazard"}
+        held (exec actor "demo-7" request 3 :test-safety-concern)
+        pre-approval-ledger (count (store/ledger s))
+        approved (g/run* actor {:approval {:status :approved :by "ops-manager-01"}}
+                         {:thread-id "demo-7" :resume? true})]
+    {:scenario "safety-concern-escalates-then-approved"
+     :status-pre-approval (:status held)
+     :frontier-pre-approval (:frontier held)
+     :ledger-entries-pre-approval pre-approval-ledger
+     :status-post-approval (:status approved)
+     :decision-post-approval (:decision (:state approved))
+     :ledger-entries-post-approval (count (store/ledger s))
+     :pass? (and (= :interrupted (:status held))
+                 (zero? pre-approval-ledger)
+                 (= :done (:status approved))
+                 (= :commit (:decision (:state approved)))
+                 (= 1 (count (store/ledger s))))}))
 
 (defn demo
   "Run all scenarios and print results."
@@ -149,11 +174,11 @@
                    scenario-scope-exclusion-athlete-selection
                    scenario-scope-exclusion-competitive-scheduling
                    scenario-scope-exclusion-pricing
-                   scenario-safety-concern-escalates]
+                   scenario-safety-concern-escalates-then-approved]
         results (mapv (fn [f] (f)) scenarios)
         passed (filter :pass? results)
         failed (filter #(not (:pass? %)) results)]
-    (println (str "\n=== sportsleagueadminops Simulator ===\n"
+    (println (str "\n=== sportsleagueadminops Simulator (real compiled StateGraph) ===\n"
                   "Scenarios: " (count results) "\n"
                   "Passed: " (count passed) "\n"
                   "Failed: " (count failed) "\n"))
