@@ -3,6 +3,13 @@
  :deps
  {org.clojure/clojure {:mvn/version "1.12.0"}
   org.clojure/clojurescript {:mvn/version "1.10.914"}
+  ;; デジタル庁デザインシステム (DADS) -- the workspace's base design
+  ;; system (CLAUDE.md "UI/UX 標準"). Consumed as a git dep, not
+  ;; :local/root, so a standalone fork of this repo can still resolve
+  ;; it. Only `render-html` uses it; the actor itself has no UI deps.
+  io.github.kotoba-lang/jp-go-digital-design-system
+  {:git/url "https://github.com/kotoba-lang/jp-go-digital-design-system"
+   :git/sha "83db99546eabc53613ae826ea41d1533a3c574af"}
   io.github.com-junkawasaki/langgraph-clj {:local/root "../../kotoba-lang/langgraph"}
   io.github.kotoba-lang/langchain {:local/root "../../kotoba-lang/langchain"}
   io.github.kotoba-lang/langchain-store {:local/root "../../kotoba-lang/langchain-store"}}
@@ -15,6 +22,12 @@
   ;; clojure -M:dev:run -> drive the demo through the real compiled
   ;; OperationActor StateGraph
   :run {:main-opts ["-m" "sportsleagueadminops.sim"]}
+
+  ;; clojure -M:render-html [out-file] -> regenerate
+  ;; docs/samples/operator-console.html by RUNNING the real actor
+  ;; (flagship checklist item 2). Refuses to write the file if the run
+  ;; produced no HARD governor refusal.
+  :render-html {:main-opts ["-m" "sportsleagueadminops.render-html"]}
 
   ;; clojure -M:dev:test -- the old :test alias pointed :main-opts at a
   ;; nonexistent `sportsleagueadminops.test` namespace (no -main anywhere
