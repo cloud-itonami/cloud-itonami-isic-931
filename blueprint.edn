@@ -38,7 +38,7 @@
  fixed: unqualified JVM-only java.util.UUID/randomUUID and
  System/currentTimeMillis calls in operation.cljc (a .cljc file) are now
  portable via reader-conditionals. Proven end-to-end by
- test/sportsleagueadminops/operation_test.cljc (commit / hard-hold
+ test/sportsleagueadminops/operation_test.kotoba (commit / hard-hold
  (unverified + unregistered facility) / scope-exclusion hold /
  phase-hold / phase-gates-commit / escalate-approve / escalate-reject /
  phase-0-never-escalates, all through the REAL compiled graph), plus a
