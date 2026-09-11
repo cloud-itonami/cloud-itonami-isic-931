@@ -34,7 +34,7 @@
   on facility-id or op would be ambiguous because several scenarios
   share both). The page is therefore byte-identical across reruns.
 
-  Usage: `clojure -M:render-html [out-file]`
+  Usage: `kbb -M:render-html [out-file]`
   (default `docs/samples/operator-console.html`)."
   (:require [kotoba.lang.text :as str]
             [jp-go-dds.skin]
@@ -467,7 +467,7 @@
 
      "  <section class=\"card\">\n"
      "    <h2>What this page is</h2>\n"
-     "    <p class=\"muted\">Generated at build time by <code>sportsleagueadminops.render-html</code> (<code>clojure -M:render-html</code>). "
+     "    <p class=\"muted\">Generated at build time by <code>sportsleagueadminops.render-html</code> (<code>kbb -M:render-html</code>). "
      "It drives the repo's real compiled <code>langgraph</code> StateGraph "
      "(<code>:intake &rarr; :advise &rarr; :govern &rarr; :decide &rarr; :commit / :request-approval / :hold</code>) over the seeded "
      "<code>sportsleagueadminops.store</code> directory, then reads the resulting append-only ledger back out. "

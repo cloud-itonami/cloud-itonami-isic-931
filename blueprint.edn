@@ -42,7 +42,7 @@
  (unverified + unregistered facility) / scope-exclusion hold /
  phase-hold / phase-gates-commit / escalate-approve / escalate-reject /
  phase-0-never-escalates, all through the REAL compiled graph), plus a
- `clojure -M:dev:run` demo runner producing real ledger entries for
+ `kbb -M:dev:run` demo runner producing real ledger entries for
  every scenario. sportsleagueadminops.governor-test (pre-existing, real
  clojure.test deftest/is against governor/check, never hardcoded-pass)
  preserved unchanged."}

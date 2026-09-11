@@ -24,17 +24,17 @@
         :extra-deps {org.clojure/tools.namespace {:mvn/version "1.4.4"}
                      org.clojure/test.check {:mvn/version "1.1.1"}}}
 
-  ;; clojure -M:dev:run -> drive the demo through the real compiled
+  ;; kbb -M:dev:run -> drive the demo through the real compiled
   ;; OperationActor StateGraph
   :run {:main-opts ["-m" "sportsleagueadminops.sim"]}
 
-  ;; clojure -M:render-html [out-file] -> regenerate
+  ;; kbb -M:render-html [out-file] -> regenerate
   ;; docs/samples/operator-console.html by RUNNING the real actor
   ;; (flagship checklist item 2). Refuses to write the file if the run
   ;; produced no HARD governor refusal.
   :render-html {:main-opts ["-m" "sportsleagueadminops.render-html"]}
 
-  ;; clojure -M:dev:test -- the old :test alias pointed :main-opts at a
+  ;; kbb -M:dev:test -- the old :test alias pointed :main-opts at a
   ;; nonexistent `sportsleagueadminops.test` namespace (no -main anywhere
   ;; in this repo) and was never actually runnable. Fixed to the same
   ;; cognitect.test-runner invocation this fleet's other actors use.

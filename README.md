@@ -65,7 +65,7 @@ These are un-overridable, even with human approval.
 ### Tests
 
 ```bash
-clojure -M:dev:test
+kbb -M:dev:test
 ```
 
 Runs `advisor` / `governor` / `phase` / `store` / `operation` — the `operation`
@@ -76,13 +76,13 @@ and drive it end to end via `langgraph.graph/run*`, including a genuine
 ### Linting
 
 ```bash
-clojure -M:lint
+kbb -M:lint
 ```
 
 ### Demo/Simulator
 
 ```bash
-clojure -M:dev:run
+kbb -M:dev:run
 ```
 
 This runs `sportsleagueadminops.sim/demo`, which drives the same compiled
