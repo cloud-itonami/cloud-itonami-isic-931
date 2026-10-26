@@ -20,7 +20,8 @@
          :git/sha "e09192276fd6a111dfb9959bfc75ddeba555e840"
          :deps/root "lib/kotoba.jpGoDigitalDesignSystem"}
   io.github.com-junkawasaki/langgraph-clj {:local/root "../../kotoba-lang/langgraph"}
-  io.github.kotoba-lang/langchain {:local/root "../../kotoba-lang/langchain"}
+  io.github.kotoba-lang/langchain
+        {:local/root "../../kotoba-lang/kotoba/lib/kotoba.langchain"}
   io.github.kotoba-lang/langchain-store
         {:local/root "../../kotoba-lang/kotoba/lib/kotoba.langchainStore"}}
 
